@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reconocimiento Facial Flask</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='estilos/estilos.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <div style="display: flex; flex-direction: column; align-items: center;">
+        <div class="texto-bienvenida">
+            ¡Sonríe! Te reconoceré.
+        </div>
+        <div style="position: relative; display: inline-block;">
+            <img id="camara-video" src="{{ url_for('videoRec') }}" width="640" height="480" alt="Video de la Cámara">
+            <div class="ia-encima">
+                <img src="{{ url_for('static', filename='imagenes/IA.png') }}" alt="Cara de la IA">
+            </div>
+        </div>
+    </div>
+
+    <br><br>
+
+    <a href="{{ url_for('registro') }}">
+        <button>Registrar nuevo estudiante</button>
+    </a>
+
+    <div class="logo-inferior">
+        <img src="{{ url_for('static', filename='imagenes/logo_uni.png') }}" alt="Logo de la Universidad">
+    </div>
+</body>
+</html>
