@@ -178,3 +178,7 @@ body {
 
     /* ... más ajustes para móvil ... */
 }
+#camara-video {
+  /* ...otros estilos... */
+  transform: scaleX(-1); /* Invertir la imagen horizontalmente */
+}
