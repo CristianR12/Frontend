@@ -1,65 +1,87 @@
-    <!doctype html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <title>Reconocimiento Facial Flask</title>
-        <link rel="stylesheet" href="{{ url_for('static', filename='estilos/estilos.css') }}">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body>
-        <div style="display: flex; flex-direction: column; align-items: center;">
-            <div class="texto-bienvenida">
-                ¡Sonríe! Te reconoceré.
-            </div>
-            <div style="position: relative; display: inline-block;">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reconocimiento Facial</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="estilos/estilos.css">
+</head>
+<body>
+    <div style="display: flex; flex-direction: column; align-items: center;">
+        <div class="texto-bienvenida">
+            ¡Sonríe! Te reconoceré.
+        </div>
+        <div style="position: relative; display: inline-block;">
             <video id="camara-video" autoplay playsinline></video>
             <div class="ia-encima">
-                <img src="{{ url_for('static', filename='imagenes/IA.png') }}" alt="Cara de la IA">
+                <img src="imagenes/IA.png" alt="Cara de la IA">
             </div>
         </div>
+        <div class="mensaje-error" id="mensaje-error"></div>
     </div>
 
-        <br><br>
+    <br><br>
 
-        <a href="{{ url_for('registro') }}">
-            <button>Registrar nuevo estudiante</button>
-        </a>
+    <a href="registro.html">
+        <button>Registrar nuevo estudiante</button>
+    </a>
 
-        <div class="logo-inferior">
-            <img src="{{ url_for('static', filename='imagenes/logo_uni.png') }}" alt="Logo de la Universidad">
-        </div>
-        
-            <script>
+    <div class="logo-inferior">
+        <img src="imagenes/logo_uni.png" alt="Logo de la Universidad">
+    </div>
+
+    <script>
         const videoElement = document.getElementById('camara-video');
+        const mensajeError = document.getElementById('mensaje-error');
+        const backendUrl = 'https://tu-backend.onrender.com'; //  <-  URL de Render
 
-        // Función para inicializar la cámara
         async function iniciarCamara() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 videoElement.srcObject = stream;
-            } catch (err) {
-                console.error("Error al acceder a la cámara:", err);
-                // Muestra un mensaje de error al usuario en la página
-                videoElement.style.display = 'none'; // Oculta el elemento de video
-                const errorDiv = document.createElement('div');
-                errorDiv.innerHTML = "No se pudo acceder a la cámara. Por favor, asegúrese de que la cámara esté conectada y los permisos estén habilitados.";
-                errorDiv.style.color = 'red';
-                errorDiv.style.marginTop = '10px';
-                document.querySelector('.texto-bienvenida').parentNode.insertBefore(errorDiv, document.querySelector('.texto-bienvenida').nextSibling);
-
+                setInterval(enviarFotograma, 100); // Enviar fotogramas al backend
+            } catch (error) {
+                console.error("Error al acceder a la cámara:", error);
+                mensajeError.textContent = "No se pudo acceder a la cámara. Asegúrate de que esté conectada y los permisos estén habilitados.";
+                videoElement.style.display = 'none';
             }
         }
-        iniciarCamara();
 
-       /* // Función para actualizar la imagen de la cámara periódicamente  -- Esto ya no es necesario
-        function actualizarVideo() {
-            const imgElement = document.getElementById('camara-video');
-            // La clave es agregar un timestamp a la URL para evitar el caché del navegador -- Esto ya no es necesario
-            imgElement.src = "{{ url_for('video_feed') }}?_=" + new Date().getTime();  -- Esto ya no es necesario
+        async function enviarFotograma() {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            const imageDataUrl = canvas.toDataURL('image/jpeg');
+
+            try {
+                const response = await fetch(`${backendUrl}/reconocer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ image: imageDataUrl })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log(data); // Manejar la respuesta del backend
+                if (data.estado === 'reconocido') {
+                    mensajeError.textContent = `¡Reconocido! Estudiante: ${data.nombre}`;
+                    // Aquí podrías mostrar un mensaje, registrar la asistencia, etc.
+                } else {
+                    mensajeError.textContent = 'Rostro no reconocido';
+                }
+
+            } catch (error) {
+                console.error("Error al enviar fotograma:", error);
+                mensajeError.textContent = "Error al enviar fotograma al servidor.";
+            }
         }
 
-        // Actualizar la imagen cada 0.1 segundos (100 milisegundos) -- Esto ya no es necesario
-        setInterval(actualizarVideo, 100); // Ajusta la velocidad de actualización según tu necesidad  -- Esto ya no es necesario*/
+        iniciarCamara();
     </script>
-    </body>
-    </html>
+</body>
+</html>
