@@ -1,11 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Reconocimiento Facial</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="static/estilos/estilos.css">
-</head>
 <body>
     <div style="display: flex; flex-direction: column; align-items: center;">
         <div class="texto-bienvenida">
@@ -18,28 +10,20 @@
             </div>
         </div>
         <div class="mensaje-error" id="mensaje-error"></div>
-    </div>
-
-    <br><br>
-
-    <a href="registro.html">
-        <button>Registrar nuevo estudiante</button>
-    </a>
-
-    <div class="logo-inferior">
-        <img src="/static/imagenes/logo_uni.png" alt="Logo de la Universidad">
+        <div class="resultado-reconocimiento" id="resultado-reconocimiento" style="display:none;"></div>
     </div>
 
     <script>
         const videoElement = document.getElementById('camara-video');
         const mensajeError = document.getElementById('mensaje-error');
-        const backendUrl = 'http://127.0.0.1:5000';  //  <-  URL de Render
+        const resultadoReconocimiento = document.getElementById('resultado-reconocimiento');
+        const backendUrl = 'http://127.0.0.1:5000'; //  URL de Render o local
 
+        // Función para inicializar la cámara
         async function iniciarCamara() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 videoElement.srcObject = stream;
-                setInterval(enviarFotograma, 100); // Enviar fotogramas al backend
             } catch (error) {
                 console.error("Error al acceder a la cámara:", error);
                 mensajeError.textContent = "No se pudo acceder a la cámara. Asegúrate de que esté conectada y los permisos estén habilitados.";
@@ -47,41 +31,55 @@
             }
         }
 
-        async function enviarFotograma() {
+        // Función para enviar fotogramas al backend para el reconocimiento facial
+        function enviarFotograma() {
             const canvas = document.createElement('canvas');
             canvas.width = videoElement.videoWidth;
             canvas.height = videoElement.videoHeight;
             const context = canvas.getContext('2d');
             context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-            const imageDataUrl = canvas.toDataURL('image/jpeg');
+            const imageDataUrl = canvas.toDataURL('image/jpeg');  // Obtiene el fotograma como base64
 
-            try {
-                const response = await fetch(`${backendUrl}/reconocer`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: imageDataUrl })
-                });
-
+            fetch(`${backendUrl}/reconocer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageDataUrl })  // Envía el base64 en el cuerpo
+            })
+            .then(response => {
                 if (!response.ok) {
                     throw new Error(`Error: ${response.status}`);
                 }
-
-                const data = await response.json();
-                console.log(data); // Manejar la respuesta del backend
+                return response.json();
+            })
+            .then(data => {
+                console.log(data);
                 if (data.estado === 'reconocido') {
-                    mensajeError.textContent = `¡Reconocido! Estudiante: ${data.nombre}`;
+                    mensajeError.textContent = '';
+                    resultadoReconocimiento.textContent = `¡Reconocido! Estudiante: ${data.nombre}`;
+                    resultadoReconocimiento.style.display = 'block'; 
                     // Aquí podrías mostrar un mensaje, registrar la asistencia, etc.
-                } else {
+                } else if (data.estado === 'desconocido') {
                     mensajeError.textContent = 'Rostro no reconocido';
+                    resultadoReconocimiento.style.display = 'none';
                 }
-
-            } catch (error) {
+                else if (data.estado === 'no_se_detecto_rostro'){
+                    mensajeError.textContent = 'No se detectó un rostro';
+                    resultadoReconocimiento.style.display = 'none';
+                } 
+                else {
+                    mensajeError.textContent = 'Error: ' + data.mensaje; // Muestra el mensaje de error
+                    resultadoReconocimiento.style.display = 'none';
+                }
+            })
+            .catch(error => {
                 console.error("Error al enviar fotograma:", error);
                 mensajeError.textContent = "Error al enviar fotograma al servidor.";
-            }
+                resultadoReconocimiento.style.display = 'none';
+            });
         }
 
         iniciarCamara();
+        setInterval(enviarFotograma, 1000);  // Envía un fotograma cada segundo (ajusta según sea necesario)
     </script>
 </body>
 </html>
